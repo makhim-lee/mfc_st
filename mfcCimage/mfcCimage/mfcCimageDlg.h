@@ -10,6 +10,12 @@ class CmfcCimageDlg : public CDialogEx
 {
 private:
 	CImage m_image;
+	const int nWidth = 640;
+	const int nHeight = 480;
+	const int nRadius = 20;
+	const int nGray = 80;
+
+	BOOL validImgPos(const int x, const int y);
 // 생성입니다.
 public:
 	CmfcCimageDlg(CWnd* pParent = nullptr);	// 표준 생성자입니다.
@@ -35,4 +41,13 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedBtnImage();
+	afx_msg void OnBnClickedBtnSave();
+	afx_msg void OnBnClickedBtnLoad();
+	void UpdateDisplay();
+	void moveRect();
+	void drawCircle(unsigned char* fm, const int i, const int j, const int nRadius, const int nGray);
+	BOOL isInCircle(const int i, const int j, const int nCenterX, const int nCenterY, const int nRadius);
+
+	afx_msg void OnBnClickedBtnAction();
+	afx_msg void OnBnClickedButRand();
 };

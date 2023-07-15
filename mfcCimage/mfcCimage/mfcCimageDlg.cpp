@@ -66,6 +66,10 @@ BEGIN_MESSAGE_MAP(CmfcCimageDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_IMAGE, &CmfcCimageDlg::OnBnClickedBtnImage)
+	ON_BN_CLICKED(IDC_BTN_SAVE, &CmfcCimageDlg::OnBnClickedBtnSave)
+	ON_BN_CLICKED(IDC_BTN_Load, &CmfcCimageDlg::OnBnClickedBtnLoad)
+	ON_BN_CLICKED(IDC_BTN_ACTION, &CmfcCimageDlg::OnBnClickedBtnAction)
+	ON_BN_CLICKED(IDC_BUT_RAND, &CmfcCimageDlg::OnBnClickedButRand)
 END_MESSAGE_MAP()
 
 
@@ -158,11 +162,13 @@ HCURSOR CmfcCimageDlg::OnQueryDragIcon()
 
 void CmfcCimageDlg::OnBnClickedBtnImage()
 {
-	int nWidth = 640;
-	int nHeight = 480;
-	int nBpp = 8;
+	const int nBpp = 8;
 
-	m_image.Create(nWidth, nHeight, nBpp);
+	if (m_image != NULL) {
+		m_image.Destroy();
+	}
+
+	m_image.Create(nWidth, -nHeight, nBpp);
 	if (nBpp == 8) {
 		static RGBQUAD rgb[256];
 		for (int i = 0; i < 255; ++i) {
@@ -170,14 +176,14 @@ void CmfcCimageDlg::OnBnClickedBtnImage()
 		}
 		m_image.SetColorTable(0, 256, rgb);
 	}
-	int nPitch = m_image.GetPitch();
+	const int nPitch = m_image.GetPitch();
 	unsigned char* fm = (unsigned char*)m_image.GetBits();
 
-	memset(fm, 0xff, nWidth * (-nHeight));
+	memset(fm, 0xff, nWidth*nHeight);
 
 	//for (int j = 0; j < nHeight; ++j) {
 	//	for (int i = 0; i < nWidth; ++i) {
-	//		fm[j * nPitch + i] = 0xff;
+	//		fm[j * nPitch + i] = (i%0xff);
 	//	}
 	//}
 
@@ -186,9 +192,101 @@ void CmfcCimageDlg::OnBnClickedBtnImage()
 	//fm[0 * nPitch + 1] = 128;
 	//fm[1 * nPitch + 1] = 128;
 
+	UpdateDisplay();
 
+}
+
+
+void CmfcCimageDlg::UpdateDisplay()
+{
 	CClientDC dc(this);
 	m_image.Draw(dc, 0, 0);
+}
 
-	m_image.Save(_T("../save.bmp"));
+void CmfcCimageDlg::moveRect()
+{
+	static int nSttX = 0;
+	static int nSttY = 0;
+
+	const int nPitch = m_image.GetPitch();
+	unsigned char* fm = (unsigned char*)m_image.GetBits();
+
+	//memset(fm, 0xff, nWidth * nHeight);
+	drawCircle(fm, nSttX, nSttY, nRadius, 0xff);//전체초기화를 하지 않고 원만 배경과 같은 색으로 다시 칠함 
+	drawCircle(fm, ++nSttX, ++nSttY, nRadius, nGray);
+
+	UpdateDisplay();
+}
+
+BOOL CmfcCimageDlg::validImgPos(const int x, const int y)
+{
+
+	CRect rect(0, 0, nWidth, nHeight);
+
+	return rect.PtInRect(CPoint(x, y));
+}
+
+void CmfcCimageDlg::drawCircle(unsigned char* fm, const int x, const int y, const int nRadius, const int nGray)
+{
+	const int nCenterX = x + nRadius;
+	const int nCenterY = y + nRadius;
+	const int nPitch = m_image.GetPitch();
+
+	for (int j = y; j < y + nRadius * 2; ++j) {
+		for (int i = x; i < x + nRadius * 2; ++i) {
+			if (isInCircle(i, j, nCenterX, nCenterY, nRadius))
+				fm[j * nPitch + i] = nGray;
+		}
+	}
+}
+
+BOOL CmfcCimageDlg::isInCircle(const int x, const int y, const int nCenterX, const int nCenterY, const int nRadius)
+{
+	const double dX = x - nCenterX;
+	const double dY = y - nCenterY;
+	const double dDist = dX * dX + dY * dY;
+
+	return dDist < nRadius * nRadius;
+}
+
+
+CString g_strFileImate = _T("../save.bmp");
+void CmfcCimageDlg::OnBnClickedBtnSave()
+{
+	m_image.Save(g_strFileImate);
+}
+
+
+void CmfcCimageDlg::OnBnClickedBtnLoad()
+{
+	if (m_image != NULL) {
+		m_image.Destroy();
+	}
+	m_image.Load(g_strFileImate);
+
+	UpdateDisplay();
+}
+
+void CmfcCimageDlg::OnBnClickedBtnAction()
+{
+	for (int i = 0; i < 300; ++i) {
+		moveRect();
+		Sleep(10);
+	}
+}
+
+#include <random>
+void CmfcCimageDlg::OnBnClickedButRand()
+{
+	static int nRandX = 0;
+	static int nRandY = 0;
+	unsigned char* fm = (unsigned char*)m_image.GetBits();
+
+	drawCircle(fm, nRandX, nRandY, nRadius, 0xff);
+
+	nRandX = rand() % (nWidth - nRadius * 2);
+	nRandY = rand() % (nHeight - nRadius * 2);
+	drawCircle(fm, nRandX, nRandY, nRadius, nGray);
+
+	UpdateDisplay();
 }
